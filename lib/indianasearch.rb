@@ -1,16 +1,23 @@
-require "indianasearch/base"
-require "indianasearch/class_methods"
-require "indianasearch/configuration"
+require 'indianasearch/class_methods'
+require 'indianasearch/configuration'
 
 module IndianaSearch
+  require 'indianasearch/railtie' if defined?(Rails)
   extend Configuration
 
-  def self.extended(receiver)
-    receiver.class_attribute :indiana_attributes, :indiana_index
-    receiver.indiana_attributes = {}
-    receiver.indiana_index = :id
+  class << self
+    attr_reader :included_in
 
-    receiver.extend ClassMethods
+    def extended(receiver)
+      receiver.class_attribute :indiana_attributes, :indiana_index
+      receiver.indiana_attributes = {}
+      receiver.indiana_index = :id
+
+      receiver.extend ClassMethods
+
+      @included_in ||= []
+      @included_in << receiver
+      @included_in.uniq!
+    end
   end
-
 end

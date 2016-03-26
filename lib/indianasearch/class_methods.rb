@@ -1,34 +1,51 @@
 # encoding: utf-8
 require 'rest-client'
 module IndianaSearch
+  # Add some methods to the class that includes
   module ClassMethods
-
-     def add_indiana_column(*names)
+    def add_indiana_column(*names)
       names.flatten.each do |name|
-        self.indiana_attributes[name.to_s] = Proc.new { |o| o.send(name) }
+        indiana_attributes[name.to_s] = proc { |o| o.send(name) }
       end
     end
-    alias :add_indiana_columns :add_indiana_column
+    alias add_indiana_columns add_indiana_column
 
     def add_indiana_index(column)
       self.indiana_index = column
     end
 
     def publish_entry(resource, obj)
-      RestClient.get("#{IndianaSearch.configuration[:host]}#{IndianaSearch.configuration[:version]}/#{resource}/search/")
+      data = obj.is_a?(Array) ? obj : get_indianasearch(obj)
+      url = [IndianaSearch.configuration[:host], IndianaSearch.configuration[:version], resource, 'index'].join('/')
+      RestClient.post(url,
+                      { data: data }.to_json,
+                      Authorization: "Bearer #{IndianaSearch.configuration[:api_token]}",
+                      content_type: :json, accept: :json)
     end
 
     def search(resource, column, value)
-      url = "#{IndianaSearch.configuration[:host]}#{IndianaSearch.configuration[:version]}/#{resource}/search/#{column}/#{URI.encode(value)}"
-      RestClient.get(url, Authorization: "Bearer #{IndianaSearch.configuration[:api_token]}")
+      url = [IndianaSearch.configuration[:host], IndianaSearch.configuration[:version],
+             resource, 'search', column, URI.encode(value)].join('/')
+      RestClient.get(url, Authorization: "Bearer #{IndianaSearch.configuration[:api_token]}",
+                          content_type: :json, accept: :json)
+    end
+
+    def reindex_all
+      IndianaSearch.included_in.each do |klass|
+        data = []
+        klass.find_in_batches(batch_size: 1000).each do |batch|
+          batch.each { |obj| data.push(klass.send(:get_indianasearch, obj)) }
+        end
+        klass.publish_entry(klass.table_name, data)
+      end
     end
 
     private
 
     def get_indianasearch(obj)
       attrs = {}
-      attrs[self.indiana_index] = obj.try(self.indiana_index)
-      self.indiana_attributes.map { |key, o| attrs[key] = o.call(obj) }
+      attrs[indiana_index] = obj.try(indiana_index)
+      indiana_attributes.map { |key, o| attrs[key] = o.call(obj) }
       attrs
     end
   end
