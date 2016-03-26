@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
                 'README.md',
                 'tasks/indianasearch_tasks.rake']
 
-  s.add_dependency 'rails', '>= 4.2.4'
+  s.add_dependency 'rails', '>= 4.2.0'
   s.add_dependency 'rest-client'
 
   s.add_development_dependency 'activerecord'

@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     indianasearch (0.1.0)
-      rails (>= 4.2.4)
+      rails (>= 4.2.0)
       rest-client
 
 GEM
