@@ -32,11 +32,15 @@ module IndianaSearch
 
     def reindex_all
       IndianaSearch.included_in.each do |klass|
-        data = []
-        klass.find_in_batches(batch_size: 1000).each do |batch|
-          batch.each { |obj| data.push(klass.send(:get_indianasearch, obj)) }
+        count = klass.count
+        klass.find_in_batches(batch_size: 100).each_with_index do |batch, index|
+          data = []
+          batch.each do |obj|
+            data.push(klass.send(:get_indianasearch, obj))
+          end
+          puts "publishing #{index}/#{count / 100}"
+          klass.publish_entry(klass.table_name, data)
         end
-        klass.publish_entry(klass.table_name, data)
       end
     end
 
